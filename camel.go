@@ -26,11 +26,14 @@
 package strcase
 
 import (
+	"fmt"
 	"strings"
+	"sync"
 )
 
 // Converts a string to CamelCase
 func toCamelInitCase(s string, initCase bool) string {
+	var mu sync.Mutex
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return s
@@ -73,7 +76,18 @@ func toCamelInitCase(s string, initCase bool) string {
 			capNext = v == '_' || v == ' ' || v == '-' || v == '.'
 		}
 	}
-	return n.String()
+	buf := n.String()
+	replacements.Range(func(k, v any) bool {
+		contains := strings.Contains(s, fmt.Sprint(k))
+		if contains {
+			mu.Lock()
+			buf = strings.ReplaceAll(buf, fmt.Sprint(k), fmt.Sprint(v))
+			mu.Unlock()
+			return false
+		}
+		return true
+	})
+	return buf
 }
 
 // ToCamel converts a string to CamelCase
